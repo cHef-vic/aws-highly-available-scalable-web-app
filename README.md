@@ -47,6 +47,8 @@ The infrastructure is deployed in a custom VPC _(10.0.0.0/16)_ across two Availa
 *   **NAT Gateway:** A single NAT Gateway is deployed in a public subnet to provide outbound internet access for the private EC2 instances.
   
     *   *Design Tradeoff:* A single NAT Gateway was chosen over a highly available NAT per AZ to minimize costs for this demonstration project, accepting a slight risk of an AZ failure affecting outbound connectivity.
+ 
+Network Map
 
  ## 5. Security Configuration
 
@@ -55,6 +57,10 @@ The infrastructure is deployed in a custom VPC _(10.0.0.0/16)_ across two Availa
 *   **No SSH Access:** Port 22 is completely closed. Administrative access is handled via **AWS Systems Manager Session Manager**, eliminating the need for bastion hosts, key pairs, or public IPs on the instances.
 
 *   **IAM Least Privilege:** The EC2 instances use an IAM Instance Profile with the _AmazonSSMManagedInstanceCore_ policy and a custom inline policy allowing _s3:ListBucket_ and _s3:GetObject_ scoped specifically to the application S3 bucket.
+
+ALB SG
+
+App Server SG
 
 ## 6. Application & Launch Template
 
@@ -72,6 +78,8 @@ The **Launch Template** automates instance provisioning:
 *   **Target Group:** Protocol HTTP/1.1 on Port 80.
 *   **Health Checks:** Configured for / with a 15-second interval, 5-second timeout, and 2 healthy/unhealthy thresholds. 
 
+Application LB
+
 ## 8. Auto Scaling Configuration
 
 *   **Capacity:** Minimum 2, Desired 2, Maximum 4.
@@ -85,13 +93,30 @@ The **Launch Template** automates instance provisioning:
 *   **Test:** Accessed the ALB DNS name and refreshed multiple times.
 *   **Result:** The site loaded successfully, and the instance ID badge alternated between the two instances across different AZs, proving traffic distribution.
 
+app server 1
+
+app server 2
+
 ### 9.2 Scale-Out
 *   **Test:** Used the _stress_ utility on the existing instances to drive CPU above 50%.
-*   **Result:** CloudWatch triggered the Target Tracking policy. Within **3 to 5 minutes**, the ASG launched 2 new instances, and they successfully joined the Target Group as Healthy.
+*   **Result:** CloudWatch triggered the Target Tracking policy. Within **3 to 5 minutes**, the ASG launched new instances, and they successfully joined the Target Group as Healthy.
+
+Metrics before stress
+
+Instances before stress
+
+Metrics during stress
+
+Instances during stress
 
 ### 9.3 Scale-In
 *   **Test:** Terminated the stress process.
 *   **Result:** After a cooldown/stabilization period of **7 to 10 minutes**, the CPU metrics normalized, and the ASG successfully terminated the extra instances, returning capacity to the desired state of 2.
+
+Metrics after stress
+
+Instances after stress
+
 
 ## 10. Monitoring
 
